@@ -1,0 +1,281 @@
+let connectionInterval, stopIndex = 0, data, clockInterval, ipAddr, casovac, vehInStop;
+let connectionReady = false;
+
+function init(){
+    casovac = Date.now();
+    clockInterval = setInterval(() => {
+        hodiny();
+    }, 1000);
+    document.getElementById("diversion").hidden = true;
+}
+
+async function connect(){
+    ipAddr = document.getElementById("serverIP").value;
+    console.log(ipAddr);
+    let regex = /^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if(!regex.test(ipAddr) || ipAddr == ""){
+        alert("Prázdná či neplatná IP adresa!");
+        return;
+    }
+
+    try {
+        const res = await fetch(`http://${ipAddr}:3000/status`, {method: "GET"});
+        const status = await res.json();
+        if(status.ready){
+            document.getElementById("result").innerHTML = "Server OK! <br>";
+            document.getElementById("result").innerHTML += "ver: " + status.ver;
+            //connectionInterval = setInterval(updateData(), 60000);
+            connectionReady = true;
+        }
+    } catch (err) {
+            document.getElementById("result").innerHTML = "Server ERR! <br>";
+            document.getElementById("result").innerHTML += err;
+            connectionReady = false;
+    }
+}
+
+async function updateData() {
+    const res = await fetch(`http://${ipAddr}:3000/bustec`, {method: "GET"});
+    data = await res.json();    
+    console.log(data);
+    stopIndex = 0;
+    updateTextFields();
+}
+
+function hodiny(){
+    const date = new Date();
+    const ted = Date.now();
+    let hh = String(date.getHours()).padStart(2, "0");
+    let mm = String(date.getMinutes()).padStart(2, "0");
+    document.getElementById("time").innerHTML = `${hh}:${mm}`;
+    console.log((casovac - ted) / 1000 );
+    console.log("Update hodin ted!");
+    if((((ted - casovac) / 1000) > 10)){
+        if(!vehInStop){
+            for (const element of document.getElementsByClassName("upcomingStopsContainer")) {
+                element.hidden = !element.hidden;
+            }
+            console.log("Prepnuto snad");
+        }
+        casovac = Date.now();
+       
+    }
+}
+
+function posunZastavky(smer){
+    if(smer == "+"){
+        if(stopIndex < data.stops.length-1){
+            stopIndex++;
+            updateTextFields();
+            getNextStopDepartures(data.stops[stopIndex].cisId);
+        }
+    }
+    else{
+        if(stopIndex > 0){
+            stopIndex--;
+            updateTextFields();
+            getNextStopDepartures(data.stops[stopIndex].cisId);
+        }
+    }
+    
+}
+
+function updateTextFields(){
+    document.getElementById("indexZastavky").innerHTML = "Index zastávky: " + stopIndex;
+    document.getElementById("line").innerHTML = data.line;
+    document.getElementById("line").className = "line " + data.type;
+    if(data.type.endsWith("replacement")){
+        document.getElementById("diversion").hidden = false;
+    }
+    else{
+        document.getElementById("diversion").hidden = true;   
+    }
+    document.getElementById("mainDiv").className = "departures " + data.type;
+    document.getElementById("destination").innerHTML = data.dest;
+    let cilTransfers = "";
+    data.stops[data.stops.length-1].transfers.forEach(transfer => {
+        if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                cilTransfers += `<img src="../src/icons/${transfer}.svg" height="74px">`;
+        }}
+    );
+    document.getElementById("destination").innerHTML += cilTransfers;
+
+    if(!(data.stops[stopIndex+4] == undefined)){
+        document.getElementById("zone4").innerHTML = data.stops[stopIndex+4].zone;
+        document.getElementById("stop4").innerHTML = data.stops[stopIndex+4].name;
+        let transfers = "";
+        data.stops[stopIndex+4].transfers.forEach(transfer => {
+            if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                    transfers += `<img src="../src/icons/${transfer}.svg" height="60px">`;
+            }}
+        );
+        document.getElementById("stop4").innerHTML += transfers;
+    }
+    else{
+        document.getElementById("zone4").innerHTML = "  ";
+        document.getElementById("stop4").innerHTML = "  ";
+    }
+
+    if(!(data.stops[stopIndex+3] == undefined)){
+        document.getElementById("zone3").innerHTML = data.stops[stopIndex+3].zone;
+        document.getElementById("stop3").innerHTML = data.stops[stopIndex+3].name;
+        let transfers = "";
+        data.stops[stopIndex+3].transfers.forEach(transfer => {
+            if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                    transfers += `<img src="../src/icons/${transfer}.svg" height="60px">`;
+            }}
+        );
+        document.getElementById("stop3").innerHTML += transfers;
+    }
+    else{
+        document.getElementById("zone3").innerHTML = "  ";
+        document.getElementById("stop3").innerHTML = "  ";
+    }
+
+    if(!(data.stops[stopIndex+2] == undefined)){
+        document.getElementById("zone2").innerHTML = data.stops[stopIndex+2].zone;
+        document.getElementById("stop2").innerHTML = data.stops[stopIndex+2].name;
+            let transfers = "";
+        data.stops[stopIndex+2].transfers.forEach(transfer => {
+            if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                    transfers += `<img src="../src/icons/${transfer}.svg" height="60px">`;
+            }}
+        );
+        document.getElementById("stop2").innerHTML += transfers;
+    }
+    else{
+        document.getElementById("zone2").innerHTML = "  ";
+        document.getElementById("stop2").innerHTML = "  ";
+    }
+
+    if(!(data.stops[stopIndex+1] == undefined)){
+        document.getElementById("zone1").innerHTML = data.stops[stopIndex+1].zone;
+        document.getElementById("stop1").innerHTML = data.stops[stopIndex+1].name;
+        let transfers = "";
+        data.stops[stopIndex+1].transfers.forEach(transfer => {
+            if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                    transfers += `<img src="../src/icons/${transfer}.svg" height="60px"> `;
+            }}
+        );
+        document.getElementById("stop1").innerHTML += transfers;
+    }
+    else{
+        document.getElementById("zone1").innerHTML = "  ";
+        document.getElementById("stop1").innerHTML = "  ";
+    }
+    document.getElementById("zone0").innerHTML = data.stops[stopIndex].zone;
+    document.getElementById("stop0").innerHTML = data.stops[stopIndex].name;
+    
+}
+
+function vehicleInStop(){
+    vehInStop = document.getElementById("zastavkaBtn").checked;
+    if(vehInStop){
+        document.getElementById("nextStopContainer").classList.add("active");
+        document.getElementById("nextStopContent").classList.add("active");
+
+        document.getElementById("nextStopHelperCZ").innerHTML = "Zastávka ";
+        document.getElementById("nextStopHelperEN").innerHTML = "/ This stop";
+        document.getElementsByClassName("upcomingStopsContainer")[0].hidden = false;
+        document.getElementsByClassName("upcomingStopsContainer")[1].hidden = true;
+
+    }
+    else{
+        document.getElementById("nextStopContainer").classList.remove("active");
+        document.getElementById("nextStopContent").classList.remove("active");
+        casovac = Date.now();
+        document.getElementById("nextStopHelperCZ").innerHTML = "Příští zastávka ";
+        document.getElementById("nextStopHelperEN").innerHTML = "/ Next stop";
+    }
+}
+
+async function getNextStopDepartures(id) {
+    let response = await fetch("../options.json");
+    let fetchOpt = await response.json();
+    const result = await fetch(`https://api.golemio.cz/v2/pid/departureboards?cisIds=${id}`, fetchOpt);
+    const mezi = await result.json();
+    const departures = mezi.departures;
+    let toAdd = "";
+    let addedLines = [];
+    let noMoreDeparturesTextAdded = false;
+    console.log(JSON.stringify(departures));
+
+    for (let i = 0; i < 12; i++) {
+        console.log(departures[i]);
+        if(departures[i] == undefined){
+            if(noMoreDeparturesTextAdded){
+                toAdd += `<div></div>`;
+                
+            }
+            else{
+                noMoreDeparturesTextAdded = true;
+                toAdd += `<div class="noMoreDeps">– Žádné další odjezdy v následujících 30 min. –</div>`;
+            }
+            continue;
+        }
+        const dep = departures[i];
+        console.log(addedLines.includes(dep.route.short_name + dep.stop.platform_code) + dep.route.short_name + dep.stop.platform_code);
+        console.log(addedLines.includes(dep.route.short_name + " == " + data.line));
+        console.log(addedLines.includes(dep.trip.id) + dep.trip.id);
+        if(addedLines.includes(dep.route.short_name + dep.stop.platform_code) || dep.route.short_name == data.line || addedLines.includes(dep.trip.id)){
+            
+            departures.splice(i);
+            i--;
+            continue;
+        }
+        else{
+            addedLines.push(dep.route.short_name + dep.stop.platform_code);
+            addedLines.push(dep.trip.id);
+        }
+        console.log(dep);
+        let m = dep.departure_timestamp.minutes;
+        if(parseInt(m) > 30){
+            if(noMoreDeparturesTextAdded){
+                toAdd += `<div></div>`;
+            }
+            else{
+                noMoreDeparturesTextAdded = true;
+                toAdd += `<div class="noMoreDeps">– Žádné další odjezdy v následujících 30 min. –</div>`;
+            }
+            continue;
+        }
+        else{
+            let linka = dep.route.short_name;
+            let smer = dep.trip.headsign;
+            let nastupiste = dep.stop.platform_code;
+            let typ = "";
+            if(dep.route.is_night){
+                typ += "night";
+            }
+            if(dep.route.is_regional){
+                typ += "reg";
+            }
+            switch (dep.route.type) {
+                case 0:
+                    typ += "tram";
+                break;
+                case 1:
+                    typ = "";
+                    linka = `<img height="64px" src="./src/icons/metro${linka}.svg">`;
+                break;
+                case 2:
+                    typ += "train";
+                break;
+                case 3:
+                    typ += "bus";
+                break;
+                case 4:
+                    typ += "ferry";
+                break;
+                case 7:
+                    typ += "funicular";
+                break;
+                case 11:
+                    typ += "tbus";
+                break;
+            }
+            toAdd += `<div><span class="line ${typ}">${linka}</span><img height="25px" src="../src/icons/arrow.svg" class="arrow"><span class="destination">${smer}</span><span class="platform">${nastupiste}</span><span class="time"><b>${m}</b> min.</span></div>`;
+        }
+    }
+    document.getElementById("upcomingStopsInfoPane").innerHTML = toAdd;
+}
