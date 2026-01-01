@@ -166,7 +166,7 @@ function updateTextFields(){
     document.getElementById("zone0").innerHTML = data.stops[stopIndex].zone;
     document.getElementById("stop0").innerHTML = data.stops[stopIndex].name;
     console.log(data.stops[stopIndex].transfers);
-    if(data.stops[stopIndex].transfers.length > 0){
+    if(data.stops[stopIndex].transfers.length > 0 && !data.type.startsWith("night") ){
         let transfers = "";
         data.stops[stopIndex].transfers.forEach(transfer => {
             if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
@@ -256,10 +256,13 @@ async function getNextStopDepartures(id) {
             let nastupiste = dep.stop.platform_code;
             let typ = "";
             if(dep.route.is_night){
-                typ += "night";
+                typ += "night ";
             }
             if(dep.route.is_regional){
                 typ += "reg";
+            }
+            if(dep.route.is_substitute_transport){
+                typ += "replacement ";
             }
             switch (dep.route.type) {
                 case 0:
