@@ -48,8 +48,8 @@ function hodiny(){
     let hh = String(date.getHours()).padStart(2, "0");
     let mm = String(date.getMinutes()).padStart(2, "0");
     document.getElementById("time").innerHTML = `${hh}:${mm}`;
-    console.log((casovac - ted) / 1000 );
-    console.log("Update hodin ted!");
+    //console.log((casovac - ted) / 1000 );
+    //console.log("Update hodin ted!");
     if((((ted - casovac) / 1000) > 10)){
         if(!vehInStop){
             for (const element of document.getElementsByClassName("upcomingStopsContainer")) {
@@ -165,6 +165,24 @@ function updateTextFields(){
     }
     document.getElementById("zone0").innerHTML = data.stops[stopIndex].zone;
     document.getElementById("stop0").innerHTML = data.stops[stopIndex].name;
+    console.log(data.stops[stopIndex].transfers);
+    if(data.stops[stopIndex].transfers.length > 0){
+        let transfers = "";
+        data.stops[stopIndex].transfers.forEach(transfer => {
+            if(transfer != "tram" && transfer != "bus" && transfer != "trolleybus" && !(data.type.startsWith("night"))){
+                    transfers += `<img src="../src/icons/${transfer}.svg" height="75px"> `;
+            }}
+        );
+        document.getElementById("transferTypes").innerHTML = transfers;
+        document.getElementById("transfers").hidden = false;
+        console.log("máme přestupy");
+    }
+    else{
+        document.getElementById("transfers").hidden = true;
+        console.log("nemáme přestupy");
+
+    }
+
     
 }
 
@@ -192,16 +210,16 @@ function vehicleInStop(){
 async function getNextStopDepartures(id) {
     let response = await fetch("../options.json");
     let fetchOpt = await response.json();
-    const result = await fetch(`https://api.golemio.cz/v2/pid/departureboards?cisIds=${id}`, fetchOpt);
+    const result = await fetch(`https://api.golemio.cz/v2/pid/departureboards?cisIds=${id}&filter=routeHeadingOnce&total=12`, fetchOpt);
     const mezi = await result.json();
     const departures = mezi.departures;
     let toAdd = "";
-    let addedLines = [];
     let noMoreDeparturesTextAdded = false;
     console.log(JSON.stringify(departures));
 
     for (let i = 0; i < 12; i++) {
-        console.log(departures[i]);
+        //console.log(departures[i]);
+
         if(departures[i] == undefined){
             if(noMoreDeparturesTextAdded){
                 toAdd += `<div></div>`;
@@ -214,20 +232,13 @@ async function getNextStopDepartures(id) {
             continue;
         }
         const dep = departures[i];
-        console.log(addedLines.includes(dep.route.short_name + dep.stop.platform_code) + dep.route.short_name + dep.stop.platform_code);
-        console.log(addedLines.includes(dep.route.short_name + " == " + data.line));
-        console.log(addedLines.includes(dep.trip.id) + dep.trip.id);
-        if(addedLines.includes(dep.route.short_name + dep.stop.platform_code) || dep.route.short_name == data.line || addedLines.includes(dep.trip.id)){
-            
-            departures.splice(i);
+        //console.log(dep);
+        if(data.line == dep.route.short_name){
+            departures.splice(i, 1);
             i--;
             continue;
         }
-        else{
-            addedLines.push(dep.route.short_name + dep.stop.platform_code);
-            addedLines.push(dep.trip.id);
-        }
-        console.log(dep);
+
         let m = dep.departure_timestamp.minutes;
         if(parseInt(m) > 30){
             if(noMoreDeparturesTextAdded){
@@ -256,7 +267,8 @@ async function getNextStopDepartures(id) {
                 break;
                 case 1:
                     typ = "";
-                    linka = `<img height="64px" src="./src/icons/metro${linka}.svg">`;
+                    linka = `<img height="64px" src="../src/icons/metro${linka}.svg">`;
+                    nastupiste = "M";
                 break;
                 case 2:
                     typ += "train";
