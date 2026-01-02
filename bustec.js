@@ -1,5 +1,36 @@
-let connectionInterval, stopIndex = 0, data, clockInterval, ipAddr, casovac, vehInStop;
+let connectionInterval, stopIndex = 0, data, clockInterval, ipAddr, casovac, vehInStop, wsData;
 let connectionReady = false;
+
+const socket = new WebSocket("ws://192.168.2.67:3001");
+
+
+// Connection opened
+socket.addEventListener("open", (event) => {
+    console.log("BUSTEC CLIENT WS LOADED");
+    socket.send(JSON.stringify({
+      "name": "bustec",
+      "type": "ois",
+      "data": "placeholder"
+    }))
+})
+
+
+// Listen for messages
+socket.addEventListener("message", (msg) => {  
+    wsData = JSON.parse(msg.data);
+    if(wsData.dataType == "routeData"){
+        
+        updateData(wsData.data);
+        console.log(wsData);
+
+    }
+    else if(wsData.dataType == "liveData"){
+        stopIndex = wsData.data.stopIndex;
+        console.log()
+        vehicleInStop(wsData.data.vehInStop);
+        updateTextFields();
+    }
+});
 
 function init(){
     casovac = Date.now();
@@ -34,9 +65,14 @@ async function connect(){
     }
 }
 
-async function updateData() {
-    const res = await fetch(`http://${ipAddr}:3000/bustec`, {method: "GET"});
-    data = await res.json();    
+async function updateData(inputData) {
+    if(inputData == undefined){
+        const res = await fetch(`http://${ipAddr}:3000/bustec`, {method: "GET"});
+        data = await res.json(); 
+    }
+    else{
+        data = inputData;
+    }
     console.log(data);
     stopIndex = 0;
     updateTextFields();
@@ -67,14 +103,14 @@ function posunZastavky(smer){
         if(stopIndex < data.stops.length-1){
             stopIndex++;
             updateTextFields();
-            getNextStopDepartures(data.stops[stopIndex].cisId);
+            //getNextStopDepartures(data.stops[stopIndex].cisId);
         }
     }
     else{
         if(stopIndex > 0){
             stopIndex--;
             updateTextFields();
-            getNextStopDepartures(data.stops[stopIndex].cisId);
+            //getNextStopDepartures(data.stops[stopIndex].cisId);
         }
     }
     
@@ -182,12 +218,18 @@ function updateTextFields(){
         console.log("nemáme přestupy");
 
     }
-
+    getNextStopDepartures(data.stops[stopIndex].cisId);
     
 }
 
-function vehicleInStop(){
-    vehInStop = document.getElementById("zastavkaBtn").checked;
+function vehicleInStop(goo){
+    if(goo != undefined){
+        vehInStop = goo;
+    }
+    else{
+        vehInStop = document.getElementById("zastavkaBtn").checked;
+    }
+    
     if(vehInStop){
         document.getElementById("nextStopContainer").classList.add("active");
         document.getElementById("nextStopContent").classList.add("active");
