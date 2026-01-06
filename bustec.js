@@ -18,6 +18,7 @@ socket.addEventListener("open", (event) => {
 // Listen for messages
 socket.addEventListener("message", (msg) => {  
     wsData = JSON.parse(msg.data);
+    console.log(wsData);
     if(wsData.dataType == "routeData"){
         
         updateData(wsData.data);
@@ -257,7 +258,7 @@ async function getNextStopDepartures(id) {
     const departures = mezi.departures;
     let toAdd = "";
     let noMoreDeparturesTextAdded = false;
-    console.log(JSON.stringify(departures));
+    //console.log(JSON.stringify(departures));
 
     for (let i = 0; i < 12; i++) {
         //console.log(departures[i]);
