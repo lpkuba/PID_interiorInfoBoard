@@ -247,6 +247,53 @@ function updateTextFields(){
     else{
         document.getElementById("transfers").hidden = true;
         console.log("nemáme přestupy");
+    }
+    let zbyvajiciZastavky = data.stops.length - stopIndex;
+
+    let sipecky = Array.from(document.querySelectorAll('[data-group="stopMarkers"]')).reverse();
+    console.log(sipecky);
+    if(zbyvajiciZastavky <= 5){
+        sipecky.slice(-2)[0].hidden = false;
+        sipecky.slice(-2)[1].hidden = true;
+    }
+    else{
+        sipecky.slice(-2)[0].hidden = true;
+        sipecky.slice(-2)[1].hidden = false;
+
+    }
+    for (let i = 0; i < sipecky.length - 1; i++) {
+        const element = sipecky[i];
+        //sipka4 | sipka4end => 9 | 8 => zbývá 5 zastávek
+        //sipka3 | sipka3end => 7 | 6 => zbývá 4 zastávky
+        //sipka2 | sipka2end => 5 | 4 => zbývá 3 zastávky
+        //sipka1 | sipka1end => 3 | 2 => zbývá 2 zastávky
+        //sipka0 | sipka0end => 1 | 0 => zbývá 1 zastávka
+        if(zbyvajiciZastavky == Math.floor(i/2)+1){
+            element.hidden = ((i % 2) > 0); //jestli je sudy tak se skryje
+            if((i % 2) > 0){//lichy => sipka base
+                console.log("sipkabase na: " + i + " je hidden");3
+                element.hidden = true;
+            }
+            else{//sudy => sipka end
+                console.log("sipkaend na: " + i + " je shown");
+                element.hidden = false;
+            }
+        }
+        else if(zbyvajiciZastavky < Math.floor(i/2)+1){
+            console.log("sipka na: " + i + " je hidden");
+            element.hidden = true;
+        }
+        else{
+            if((i % 2) > 0){//lichy => sipka base
+                console.log("sipkabase na: " + i + " je shown");
+                element.hidden = false;
+            }
+            else{//sudy => sipka end
+                console.log("sipkaend na: " + i + " je hidden");
+                element.hidden = true;
+
+            }
+        }
 
     }
     getNextStopDepartures(data.stops[stopIndex].cisId);
@@ -266,7 +313,7 @@ function vehicleInStop(goo){
         document.getElementById("nextStopContent").classList.add("active");
 
         document.getElementById("nextStopHelperCZ").innerHTML = "Zastávka ";
-        document.getElementById("nextStopHelperEN").innerHTML = "/ This stop";
+        document.getElementById("nextStopHelperEN").innerHTML = "&nbsp;/ This stop";
         document.getElementsByClassName("upcomingStopsContainer")[0].hidden = announcement ? true : false;
         document.getElementsByClassName("upcomingStopsContainer")[1].hidden = true;
 
@@ -276,7 +323,7 @@ function vehicleInStop(goo){
         document.getElementById("nextStopContent").classList.remove("active");
         casovac = Date.now();
         document.getElementById("nextStopHelperCZ").innerHTML = "Příští zastávka ";
-        document.getElementById("nextStopHelperEN").innerHTML = "/ Next stop";
+        document.getElementById("nextStopHelperEN").innerHTML = "&nbsp;/ Next stop";
     }
 }
 
