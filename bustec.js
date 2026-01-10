@@ -1,4 +1,4 @@
-let connectionInterval, stopIndex = 0, data, clockInterval, ipAddr, casovac, vehInStop, wsData;
+let connectionInterval, stopIndex = 0, data, clockInterval, ipAddr, casovac, vehInStop, wsData, announcement = false, announcementTimeout;
 let connectionReady = false;
 
 const socket = new WebSocket("ws://192.168.2.67:3001");
@@ -20,16 +20,34 @@ socket.addEventListener("message", (msg) => {
     wsData = JSON.parse(msg.data);
     console.log(wsData);
     if(wsData.dataType == "routeData"){
-        
+        if(announcement){
+            announcement = false;
+            document.getElementsByClassName("upcomingStopsContainer")[0].hidden = false;
+            document.getElementById("announcementContainer").hidden = true;
+        }
+
         updateData(wsData.data);
         console.log(wsData);
 
     }
     else if(wsData.dataType == "liveData"){
         stopIndex = wsData.data.stopIndex;
-        console.log()
         vehicleInStop(wsData.data.vehInStop);
         updateTextFields();
+    }
+    else if(wsData.dataType == "annData"){
+        announcement = true;
+        for (const element of document.getElementsByClassName("upcomingStopsContainer")) {
+            element.hidden = true;
+            console.log("Skrývám todle:");
+            console.log(element);
+        }
+        document.getElementById("announcementContainer").hidden = false;
+        announcementTimeout = wsData.data.timeout;
+        document.getElementById("announcementCZText").innerHTML = wsData.data.cz.text;
+        document.getElementById("announcementCZText").style.fontSize = wsData.data.cz.size;
+        document.getElementById("announcementENText").innerHTML = wsData.data.en.text;
+        document.getElementById("announcementENText").style.fontSize = wsData.data.en.size;
     }
 });
 
@@ -39,6 +57,8 @@ function init(){
         hodiny();
     }, 1000);
     document.getElementById("diversion").hidden = true;
+    document.getElementById("announcementContainer").hidden = true;
+    
 }
 
 async function connect(){
@@ -88,14 +108,24 @@ function hodiny(){
     //console.log((casovac - ted) / 1000 );
     //console.log("Update hodin ted!");
     if((((ted - casovac) / 1000) > 10)){
-        if(!vehInStop){
+        if(!(vehInStop || announcement)){
+            console.log("Snaha o přepnutí:");
             for (const element of document.getElementsByClassName("upcomingStopsContainer")) {
                 element.hidden = !element.hidden;
             }
             console.log("Prepnuto snad");
         }
+        else if(announcement){
+            for (const element of document.getElementsByClassName("upcomingStopsContainer")) {
+                element.hidden = true;
+            }
+        }
         casovac = Date.now();
        
+    }
+
+    if(announcementTimeout > 1 && casovac > announcementTimeout){
+        announcement = false;
     }
 }
 
@@ -237,7 +267,7 @@ function vehicleInStop(goo){
 
         document.getElementById("nextStopHelperCZ").innerHTML = "Zastávka ";
         document.getElementById("nextStopHelperEN").innerHTML = "/ This stop";
-        document.getElementsByClassName("upcomingStopsContainer")[0].hidden = false;
+        document.getElementsByClassName("upcomingStopsContainer")[0].hidden = announcement ? true : false;
         document.getElementsByClassName("upcomingStopsContainer")[1].hidden = true;
 
     }
